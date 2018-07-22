@@ -87,10 +87,6 @@ find_package(Libopenh264 REQUIRED)
 include_directories(SYSTEM ${OPENH264_INCLUDE_DIRS})
 set(LIBRARIES ${LIBRARIES} ${OPENH264_LIBRARIES})
 
-find_package(Libyuv REQUIRED)
-include_directories(SYSTEM ${YUV_INCLUDE_DIRS})
-set(LIBRARIES ${LIBRARIES} ${YUV_LIBRARIES})
-
 ################################################################################
 # Create executable.
 add_executable(${PROJECT_NAME} ${CMAKE_CURRENT_SOURCE_DIR}/src/${PROJECT_NAME}.cpp)

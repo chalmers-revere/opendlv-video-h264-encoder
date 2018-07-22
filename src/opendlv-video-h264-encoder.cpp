@@ -19,7 +19,6 @@
 #include "opendlv-standard-message-set.hpp"
 
 #include <wels/codec_api.h>
-#include <libyuv.h>
 
 #include <cstdint>
 #include <cstring>
@@ -29,29 +28,19 @@
 int32_t main(int32_t argc, char **argv) {
     int32_t retCode{1};
     auto commandlineArguments = cluon::getCommandlineArguments(argc, argv);
-    const size_t PIXEL_LAYOUTS{commandlineArguments.count("bgr24") +
-                               commandlineArguments.count("rgb24") +
-                               commandlineArguments.count("yuv420") +
-                               commandlineArguments.count("yuyv422")};
     if ( (0 == commandlineArguments.count("cid")) ||
          (0 == commandlineArguments.count("name")) ||
          (0 == commandlineArguments.count("width")) ||
-         (0 == commandlineArguments.count("height")) ||
-         (1 != PIXEL_LAYOUTS) ) {
-        std::cerr << argv[0] << " attaches to an uncompressed video frame residing in a shared memory area to convert it into corresponding h264 frames for publishing to a running OD4 session." << std::endl;
-        std::cerr << "Usage:   " << argv[0] << " --cid=<OpenDaVINCI session> --name=<name of shared memory area> --width=<width> --height=<height> --bgr24|--rgb24|--yuyv422|--yuv420 [--gop=<length of group of pictures>] [--verbose]" << std::endl;
+         (0 == commandlineArguments.count("height")) ) {
+        std::cerr << argv[0] << " attaches to an I420-formatted image residing in a shared memory area to convert it into a corresponding h264 frame for publishing to a running OD4 session." << std::endl;
+        std::cerr << "Usage:   " << argv[0] << " --cid=<OpenDaVINCI session> --name=<name of shared memory area> --width=<width> --height=<height> [--verbose]" << std::endl;
         std::cerr << "         --cid:     CID of the OD4Session to send h264 frames" << std::endl;
         std::cerr << "         --name:    name of the shared memory area to attach" << std::endl;
         std::cerr << "         --width:   width of the frame" << std::endl;
         std::cerr << "         --height:  height of the frame" << std::endl;
         std::cerr << "         --gop:     length of group of pictures (default = 10)" << std::endl;
         std::cerr << "         --verbose: print encoding information" << std::endl;
-        std::cerr << "         One of the following pixel layouts for the image data in the shared memory must be selected:" << std::endl;
-        std::cerr << "         --bgr24:   pixel layout is RGB 24 bit" << std::endl;
-        std::cerr << "         --rgb24:   pixel layout is RGB 24 bit" << std::endl;
-        std::cerr << "         --yuv420:  pixel layout is YUV420" << std::endl;
-        std::cerr << "         --yuyv422: pixel layout is YUYV422" << std::endl;
-        std::cerr << "Example: " << argv[0] << " --cid=111 --name=data --width=640 --height=480 --yuyv422 --verbose" << std::endl;
+        std::cerr << "Example: " << argv[0] << " --cid=111 --name=data --width=640 --height=480 --verbose" << std::endl;
     }
     else {
         const std::string NAME{commandlineArguments["name"]};
@@ -60,10 +49,6 @@ int32_t main(int32_t argc, char **argv) {
         const uint32_t GOP_DEFAULT{10};
         const uint32_t GOP{(commandlineArguments["gop"].size() != 0) ? static_cast<uint32_t>(std::stoi(commandlineArguments["gop"])) : GOP_DEFAULT};
         const bool VERBOSE{commandlineArguments.count("verbose") != 0};
-        const bool BGR24{commandlineArguments.count("bgr24") != 0};
-        const bool RGB24{commandlineArguments.count("rgb24") != 0};
-        const bool YUV420{commandlineArguments.count("yuv420") != 0};
-        const bool YUYV422{commandlineArguments.count("yuyv422") != 0};
 
         std::unique_ptr<cluon::SharedMemory> sharedMemory(new cluon::SharedMemory{NAME});
         if (sharedMemory && sharedMemory->valid()) {
@@ -119,11 +104,6 @@ int32_t main(int32_t argc, char **argv) {
                 return retCode;
             }
 
-            // Allocate image buffer to hold YUV420 frame as input.
-            const uint32_t SIZE_OF_YUV420{WIDTH * HEIGHT * 3 / 2};
-            std::vector<unsigned char> yuv420Frame;
-            yuv420Frame.resize(SIZE_OF_YUV420, '0');
-
             // Allocate image buffer to hold h264 frame as output.
             std::vector<char> h264Buffer;
             h264Buffer.resize(WIDTH * HEIGHT, '0');
@@ -139,79 +119,45 @@ int32_t main(int32_t argc, char **argv) {
                 h264DataForImageReading.clear();
                 sharedMemory->lock();
                 {
-                    // Convert incoming frame data to YUV420.
-                    int result{0};
+                    SFrameBSInfo frameInfo;
+                    memset(&frameInfo, 0, sizeof(SFrameBSInfo));
 
-                    if (BGR24) {
-                        result = libyuv::RAWToI420(reinterpret_cast<unsigned char*>(sharedMemory->data()), sharedMemory->size(),
-                                                   &yuv420Frame[0], WIDTH,
-                                                   &yuv420Frame[WIDTH * HEIGHT], WIDTH/2,
-                                                   &yuv420Frame[WIDTH * HEIGHT + ((WIDTH * HEIGHT) >> 2)], WIDTH/2,
-                                                   WIDTH, HEIGHT);
-                    }
-                    if (RGB24) {
-                        result = libyuv::RGB24ToI420(reinterpret_cast<unsigned char*>(sharedMemory->data()), sharedMemory->size(),
-                                                     &yuv420Frame[0], WIDTH,
-                                                     &yuv420Frame[WIDTH * HEIGHT], WIDTH/2,
-                                                     &yuv420Frame[WIDTH * HEIGHT + ((WIDTH * HEIGHT) >> 2)], WIDTH/2,
-                                                     WIDTH, HEIGHT);
-                    }
-                    if (YUV420) {
-                        memcpy(&yuv420Frame[0], sharedMemory->data(), SIZE_OF_YUV420);
-                    }
-                    if (YUYV422) {
-                        result = libyuv::YUY2ToI420(reinterpret_cast<unsigned char*>(sharedMemory->data()), WIDTH * 2 /* 2*WIDTH for YUYV 422*/,
-                                                    &yuv420Frame[0], WIDTH,
-                                                    &yuv420Frame[WIDTH * HEIGHT], WIDTH/2,
-                                                    &yuv420Frame[WIDTH * HEIGHT + ((WIDTH * HEIGHT) >> 2)], WIDTH/2, 
-                                                    WIDTH, HEIGHT);
-                    }
+                    SSourcePicture sourceFrame;
+                    memset(&sourceFrame, 0, sizeof(SSourcePicture));
 
-                    // Test if frame conversion succeeded.
-                    if (0 == result) {
-                        SFrameBSInfo frameInfo;
-                        memset(&frameInfo, 0, sizeof(SFrameBSInfo));
+                    sourceFrame.iColorFormat = videoFormatI420;
+                    sourceFrame.iPicWidth = WIDTH;
+                    sourceFrame.iPicHeight = HEIGHT;
 
-                        SSourcePicture sourceFrame;
-                        memset(&sourceFrame, 0, sizeof(SSourcePicture));
+                    sourceFrame.iStride[0] = WIDTH;
+                    sourceFrame.iStride[1] = WIDTH/2;
+                    sourceFrame.iStride[2] = WIDTH/2;
+                    sourceFrame.pData[0] = sharedMemory->data();
+                    sourceFrame.pData[1] = sharedMemory->data() + (WIDTH * HEIGHT);
+                    sourceFrame.pData[2] = sharedMemory->data() + (WIDTH * HEIGHT + ((WIDTH * HEIGHT) >> 2));
 
-                        sourceFrame.iColorFormat = videoFormatI420;
-                        sourceFrame.iPicWidth = WIDTH;
-                        sourceFrame.iPicHeight = HEIGHT;
-
-                        sourceFrame.iStride[0] = WIDTH;
-                        sourceFrame.iStride[1] = WIDTH/2;
-                        sourceFrame.iStride[2] = WIDTH/2;
-                        sourceFrame.pData[0] = &yuv420Frame[0];
-                        sourceFrame.pData[1] = &yuv420Frame[WIDTH * HEIGHT];
-                        sourceFrame.pData[2] = &yuv420Frame[WIDTH * HEIGHT + ((WIDTH * HEIGHT) >> 2)];
-
-                        result = encoder->EncodeFrame(&sourceFrame, &frameInfo);
-                        if (cmResultSuccess == result) {
-                            if (videoFrameTypeSkip == frameInfo.eFrameType) {
-                                std::cerr << argv[0] << ": Warning, skipping frame." << std::endl;
-                            }
-                            else {
-                                int totalSize{0};
-                                for(int layer{0}; layer < frameInfo.iLayerNum; layer++) {
-                                    int sizeOfLayer{0};
-                                    for(int nal{0}; nal < frameInfo.sLayerInfo[layer].iNalCount; nal++) {
-                                        sizeOfLayer += frameInfo.sLayerInfo[layer].pNalLengthInByte[nal];
-                                    }
-                                    memcpy(&h264Buffer[totalSize], frameInfo.sLayerInfo[layer].pBsBuf, sizeOfLayer);
-                                    totalSize += sizeOfLayer;
-                                }
-                                if (0 < totalSize) {
-                                    h264DataForImageReading = std::string(&h264Buffer[0], totalSize);
-                                }
-                            }
+                    result = encoder->EncodeFrame(&sourceFrame, &frameInfo);
+                    if (cmResultSuccess == result) {
+                        if (videoFrameTypeSkip == frameInfo.eFrameType) {
+                            std::cerr << argv[0] << ": Warning, skipping frame." << std::endl;
                         }
                         else {
-                            std::cerr << argv[0] << ": Failed to encode frame: " << result << std::endl;
+                            int totalSize{0};
+                            for(int layer{0}; layer < frameInfo.iLayerNum; layer++) {
+                                int sizeOfLayer{0};
+                                for(int nal{0}; nal < frameInfo.sLayerInfo[layer].iNalCount; nal++) {
+                                    sizeOfLayer += frameInfo.sLayerInfo[layer].pNalLengthInByte[nal];
+                                }
+                                memcpy(&h264Buffer[totalSize], frameInfo.sLayerInfo[layer].pBsBuf, sizeOfLayer);
+                                totalSize += sizeOfLayer;
+                            }
+                            if (0 < totalSize) {
+                                h264DataForImageReading = std::string(&h264Buffer[0], totalSize);
+                            }
                         }
                     }
                     else {
-                        std::cerr << argv[0] << ": Failed to convert input frame with libyuv." << std::endl;
+                        std::cerr << argv[0] << ": Failed to encode frame: " << result << std::endl;
                     }
                 }
                 sharedMemory->unlock();
