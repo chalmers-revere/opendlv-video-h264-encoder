@@ -157,12 +157,7 @@ int32_t main(int32_t argc, char **argv) {
                                                      WIDTH, HEIGHT);
                     }
                     if (YUV420) {
-                        result = (SIZE_OF_YUV420 == sharedMemory->size()) ? 0 : 1;
-                        if (result) {
-                            // Simply data from shared memory into processing buffer.
-                            memcpy(&yuv420Frame[0], sharedMemory->data(), SIZE_OF_YUV420);
-                            // TODO: Speed up by omitting this copy and directly pass the pointers into SSourcePicture.
-                        }
+                        memcpy(&yuv420Frame[0], sharedMemory->data(), SIZE_OF_YUV420);
                     }
                     if (YUYV422) {
                         result = libyuv::YUY2ToI420(reinterpret_cast<unsigned char*>(sharedMemory->data()), WIDTH * 2 /* 2*WIDTH for YUYV 422*/,
