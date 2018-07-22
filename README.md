@@ -1,6 +1,6 @@
-## OpenDLV Microservice to encode video frames into h264 for network broadcast
+## OpenDLV Microservice to encode images in I420 format into h264 for network broadcast
 
-This repository provides source code to encode video frames that are accessible
+This repository provides source code to encode images in I420 format that are accessible
 via a shared memory area into h264 frames for the OpenDLV software ecosystem.
 
 [![License: GPLv3](https://img.shields.io/badge/license-GPL--3-blue.svg
@@ -53,7 +53,7 @@ services:    # Must be present exactly once at the beginning of the docker-compo
         ipc: "host"
         volumes:
         - /tmp:/tmp
-        command: "--cid=111 --name=camera02 --width=640 --height=480 --yuyv422"
+        command: "--cid=111 --name=camera.i420 --width=640 --height=480"
 ```
 
 As this microservice is connecting to another video frame-providing microservice
@@ -67,10 +67,6 @@ The parameters to the application are:
 * `--name=XYZ`: Name of the shared memory area to attach to
 * `--width=W`: Width of the image in the shared memory area
 * `--height=H`: Height of the image in the shared memory area
-* `--bgr24`: Pixel layout in the shared memory area is BGR24
-* `--rgb24`: Pixel layout in the shared memory area is BGR24
-* `--yuv420`: Pixel layout in the shared memory area is YUV420
-* `--yuyv422`: Pixel layout in the shared memory area is YUYV422
 
 
 ## License

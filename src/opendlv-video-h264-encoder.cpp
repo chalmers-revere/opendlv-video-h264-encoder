@@ -106,8 +106,7 @@ int32_t main(int32_t argc, char **argv) {
 
             // Allocate image buffer to hold h264 frame as output.
             std::vector<char> h264Buffer;
-            h264Buffer.resize(WIDTH * HEIGHT, '0');
-            std::string h264DataForImageReading;
+            h264Buffer.resize(WIDTH * HEIGHT, '0'); // In practice, this is small than WIDTH * HEIGHT
 
             // Interface to a running OpenDaVINCI session (ignoring any incoming Envelopes).
             cluon::OD4Session od4{static_cast<uint16_t>(std::stoi(commandlineArguments["cid"]))};
@@ -116,7 +115,7 @@ int32_t main(int32_t argc, char **argv) {
                 // Wait for incoming frame.
                 sharedMemory->wait();
 
-                h264DataForImageReading.clear();
+                int totalSize{0};
                 sharedMemory->lock();
                 {
                     SFrameBSInfo frameInfo;
@@ -142,7 +141,6 @@ int32_t main(int32_t argc, char **argv) {
                             std::cerr << argv[0] << ": Warning, skipping frame." << std::endl;
                         }
                         else {
-                            int totalSize{0};
                             for(int layer{0}; layer < frameInfo.iLayerNum; layer++) {
                                 int sizeOfLayer{0};
                                 for(int nal{0}; nal < frameInfo.sLayerInfo[layer].iNalCount; nal++) {
@@ -150,9 +148,6 @@ int32_t main(int32_t argc, char **argv) {
                                 }
                                 memcpy(&h264Buffer[totalSize], frameInfo.sLayerInfo[layer].pBsBuf, sizeOfLayer);
                                 totalSize += sizeOfLayer;
-                            }
-                            if (0 < totalSize) {
-                                h264DataForImageReading = std::string(&h264Buffer[0], totalSize);
                             }
                         }
                     }
@@ -162,14 +157,13 @@ int32_t main(int32_t argc, char **argv) {
                 }
                 sharedMemory->unlock();
 
-                if (!h264DataForImageReading.empty()) {
+                if (0 < totalSize) {
                     opendlv::proxy::ImageReading ir;
-                    ir.format("h264").width(WIDTH).height(HEIGHT).data(h264DataForImageReading);
+                    ir.format("h264").width(WIDTH).height(HEIGHT).data(std::string(&h264Buffer[0], totalSize));
                     od4.send(ir);
                 }
             }
-
-            if (encoder) {
+            if (nullptr != encoder) {
                 encoder->Uninitialize();
                 WelsDestroySVCEncoder(encoder);
             }
