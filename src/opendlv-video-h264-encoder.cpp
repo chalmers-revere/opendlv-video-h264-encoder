@@ -132,11 +132,11 @@ int32_t main(int32_t argc, char **argv) {
                     sourceFrame.iStride[0] = WIDTH;
                     sourceFrame.iStride[1] = WIDTH/2;
                     sourceFrame.iStride[2] = WIDTH/2;
-                    sourceFrame.pData[0] = sharedMemory->data();
-                    sourceFrame.pData[1] = sharedMemory->data() + (WIDTH * HEIGHT);
-                    sourceFrame.pData[2] = sharedMemory->data() + (WIDTH * HEIGHT + ((WIDTH * HEIGHT) >> 2));
+                    sourceFrame.pData[0] = reinterpret_cast<uint8_t*>(sharedMemory->data());
+                    sourceFrame.pData[1] = reinterpret_cast<uint8_t*>(sharedMemory->data() + (WIDTH * HEIGHT));
+                    sourceFrame.pData[2] = reinterpret_cast<uint8_t*>(sharedMemory->data() + (WIDTH * HEIGHT + ((WIDTH * HEIGHT) >> 2)));
 
-                    result = encoder->EncodeFrame(&sourceFrame, &frameInfo);
+                    auto result = encoder->EncodeFrame(&sourceFrame, &frameInfo);
                     if (cmResultSuccess == result) {
                         if (videoFrameTypeSkip == frameInfo.eFrameType) {
                             std::cerr << argv[0] << ": Warning, skipping frame." << std::endl;
