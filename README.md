@@ -53,7 +53,7 @@ services:    # Must be present exactly once at the beginning of the docker-compo
         ipc: "host"
         volumes:
         - /tmp:/tmp
-        command: "--cid=111 --name=camera.i420 --width=640 --height=480"
+        command: "--cid=111 --name=video0.i420 --width=640 --height=480"
 ```
 
 As this microservice is connecting to another video frame-providing microservice
@@ -64,6 +64,7 @@ broadcast the resulting frames into an `OD4Session` for OpenDLV. The folder
 The parameters to the application are:
 
 * `--cid=111`: Identifier of the OD4Session to broadcast the h264 frames to
+* `--id=2`: Optional identifier to set the senderStamp in broadcasted h264 frames in case of multiple instances of this microservice
 * `--name=XYZ`: Name of the shared memory area to attach to
 * `--width=W`: Width of the image in the shared memory area
 * `--height=H`: Height of the image in the shared memory area

@@ -33,8 +33,9 @@ int32_t main(int32_t argc, char **argv) {
          (0 == commandlineArguments.count("width")) ||
          (0 == commandlineArguments.count("height")) ) {
         std::cerr << argv[0] << " attaches to an I420-formatted image residing in a shared memory area to convert it into a corresponding h264 frame for publishing to a running OD4 session." << std::endl;
-        std::cerr << "Usage:   " << argv[0] << " --cid=<OpenDaVINCI session> --name=<name of shared memory area> --width=<width> --height=<height> [--verbose]" << std::endl;
+        std::cerr << "Usage:   " << argv[0] << " --cid=<OpenDaVINCI session> --name=<name of shared memory area> --width=<width> --height=<height> [--verbose] [--id=<identifier in case of multiple instances]" << std::endl;
         std::cerr << "         --cid:     CID of the OD4Session to send h264 frames" << std::endl;
+        std::cerr << "         --id:      when using several instances, this identifier is used as senderStamp" << std::endl;
         std::cerr << "         --name:    name of the shared memory area to attach" << std::endl;
         std::cerr << "         --width:   width of the frame" << std::endl;
         std::cerr << "         --height:  height of the frame" << std::endl;
@@ -49,6 +50,7 @@ int32_t main(int32_t argc, char **argv) {
         const uint32_t GOP_DEFAULT{10};
         const uint32_t GOP{(commandlineArguments["gop"].size() != 0) ? static_cast<uint32_t>(std::stoi(commandlineArguments["gop"])) : GOP_DEFAULT};
         const bool VERBOSE{commandlineArguments.count("verbose") != 0};
+        const uint32_t ID{(commandlineArguments["id"].size() != 0) ? static_cast<uint32_t>(std::stoi(commandlineArguments["id"])) : 0};
 
         std::unique_ptr<cluon::SharedMemory> sharedMemory(new cluon::SharedMemory{NAME});
         if (sharedMemory && sharedMemory->valid()) {
@@ -115,6 +117,8 @@ int32_t main(int32_t argc, char **argv) {
                 // Wait for incoming frame.
                 sharedMemory->wait();
 
+                cluon::data::TimeStamp sampleTimeStamp{cluon::time::now()};
+
                 int totalSize{0};
                 sharedMemory->lock();
                 {
@@ -160,7 +164,7 @@ int32_t main(int32_t argc, char **argv) {
                 if (0 < totalSize) {
                     opendlv::proxy::ImageReading ir;
                     ir.format("h264").width(WIDTH).height(HEIGHT).data(std::string(&h264Buffer[0], totalSize));
-                    od4.send(ir);
+                    od4.send(ir, sampleTimeStamp, ID);
                 }
             }
             if (nullptr != encoder) {
