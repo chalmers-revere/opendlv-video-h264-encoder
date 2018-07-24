@@ -41,7 +41,7 @@ int32_t main(int32_t argc, char **argv) {
         std::cerr << "         --width:   width of the frame" << std::endl;
         std::cerr << "         --height:  height of the frame" << std::endl;
         std::cerr << "         --gop:     length of group of pictures (default = 10)" << std::endl;
-        std::cerr << "         --bitrate: optional: desired bitrate (default: 2,500,000, min: 500,000 max: 5,000,000)" << std::endl;
+        std::cerr << "         --bitrate: optional: desired bitrate (default: 1,500,000, min: 100,000 max: 5,000,000)" << std::endl;
         std::cerr << "         --verbose: print encoding information" << std::endl;
         std::cerr << "Example: " << argv[0] << " --cid=111 --name=data --width=640 --height=480 --verbose" << std::endl;
     }
@@ -51,8 +51,10 @@ int32_t main(int32_t argc, char **argv) {
         const uint32_t HEIGHT{static_cast<uint32_t>(std::stoi(commandlineArguments["height"]))};
         const uint32_t GOP_DEFAULT{10};
         const uint32_t GOP{(commandlineArguments["gop"].size() != 0) ? static_cast<uint32_t>(std::stoi(commandlineArguments["gop"])) : GOP_DEFAULT};
-        const uint32_t BITRATE_DEFAULT{2500000};
-        const uint32_t BITRATE{(commandlineArguments["bitrate"].size() != 0) ? std::min(std::max(static_cast<uint32_t>(std::stoi(commandlineArguments["bitrate"])), BITRATE_DEFAULT/5), 2*BITRATE_DEFAULT) : BITRATE_DEFAULT};
+        const uint32_t BITRATE_MIN{100000};
+        const uint32_t BITRATE_DEFAULT{1500000};
+        const uint32_t BITRATE_MAX{5000000};
+        const uint32_t BITRATE{(commandlineArguments["bitrate"].size() != 0) ? std::min(std::max(static_cast<uint32_t>(std::stoi(commandlineArguments["bitrate"])), BITRATE_MIN), BITRATE_MAX) : BITRATE_DEFAULT};
         const bool VERBOSE{commandlineArguments.count("verbose") != 0};
         const uint32_t ID{(commandlineArguments["id"].size() != 0) ? static_cast<uint32_t>(std::stoi(commandlineArguments["id"])) : 0};
 
@@ -81,7 +83,7 @@ int32_t main(int32_t argc, char **argv) {
                 parameters.iPicHeight = HEIGHT;
                 parameters.uiIntraPeriod = GOP;
                 parameters.iTargetBitrate = BITRATE;
-                parameters.iMaxBitrate = 2*BITRATE_DEFAULT;
+                parameters.iMaxBitrate = BITRATE_MAX;
                 parameters.iRCMode = RC_MODES::RC_QUALITY_MODE;
                 parameters.iSpatialLayerNum = 1;
                 parameters.iTemporalLayerNum = 1;
@@ -89,7 +91,7 @@ int32_t main(int32_t argc, char **argv) {
                 parameters.iLtrMarkPeriod = 30;
                 parameters.iMultipleThreadIdc = 1; // 1 = disable multi threads.
                 parameters.iEntropyCodingModeFlag = 0; // 0 = CAVLC, 1 = CABAC (not supported in BaseLine profile).
-//                parameters.iComplexityMode = ECOMPLEXITY_MODE::LOW_COMPLEXITY;
+                parameters.iComplexityMode = ECOMPLEXITY_MODE::LOW_COMPLEXITY;
                 parameters.bEnableAdaptiveQuant = 1;
                 parameters.bEnableBackgroundDetection = 1;
                 parameters.bEnableDenoise = 1;
