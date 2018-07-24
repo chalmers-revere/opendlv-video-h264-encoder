@@ -68,6 +68,8 @@ The parameters to the application are:
 * `--name=XYZ`: Name of the shared memory area to attach to
 * `--width=W`: Width of the image in the shared memory area
 * `--height=H`: Height of the image in the shared memory area
+* `--bitrate=B`: desired bitrate (default: 100,000)
+* `--gop=G`: desired length of group of pictures (default: 10)
 
 
 ## License
