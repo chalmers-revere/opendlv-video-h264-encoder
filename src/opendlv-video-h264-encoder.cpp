@@ -20,6 +20,7 @@
 
 #include <wels/codec_api.h>
 
+#include <algorithm>
 #include <cstdint>
 #include <cstring>
 #include <iostream>
@@ -33,13 +34,14 @@ int32_t main(int32_t argc, char **argv) {
          (0 == commandlineArguments.count("width")) ||
          (0 == commandlineArguments.count("height")) ) {
         std::cerr << argv[0] << " attaches to an I420-formatted image residing in a shared memory area to convert it into a corresponding h264 frame for publishing to a running OD4 session." << std::endl;
-        std::cerr << "Usage:   " << argv[0] << " --cid=<OpenDaVINCI session> --name=<name of shared memory area> --width=<width> --height=<height> [--verbose] [--id=<identifier in case of multiple instances]" << std::endl;
+        std::cerr << "Usage:   " << argv[0] << " --cid=<OpenDaVINCI session> --name=<name of shared memory area> --width=<width> --height=<height> [--gop=<GOP>] [--bitrate=<bitrate>] [--verbose] [--id=<identifier in case of multiple instances]" << std::endl;
         std::cerr << "         --cid:     CID of the OD4Session to send h264 frames" << std::endl;
         std::cerr << "         --id:      when using several instances, this identifier is used as senderStamp" << std::endl;
         std::cerr << "         --name:    name of the shared memory area to attach" << std::endl;
         std::cerr << "         --width:   width of the frame" << std::endl;
         std::cerr << "         --height:  height of the frame" << std::endl;
         std::cerr << "         --gop:     length of group of pictures (default = 10)" << std::endl;
+        std::cerr << "         --bitrate: optional: desired bitrate (default: 2,500,000, min: 500,000 max: 5,000,000)" << std::endl;
         std::cerr << "         --verbose: print encoding information" << std::endl;
         std::cerr << "Example: " << argv[0] << " --cid=111 --name=data --width=640 --height=480 --verbose" << std::endl;
     }
@@ -49,6 +51,8 @@ int32_t main(int32_t argc, char **argv) {
         const uint32_t HEIGHT{static_cast<uint32_t>(std::stoi(commandlineArguments["height"]))};
         const uint32_t GOP_DEFAULT{10};
         const uint32_t GOP{(commandlineArguments["gop"].size() != 0) ? static_cast<uint32_t>(std::stoi(commandlineArguments["gop"])) : GOP_DEFAULT};
+        const uint32_t BITRATE_DEFAULT{2500000};
+        const uint32_t BITRATE{(commandlineArguments["bitrate"].size() != 0) ? std::min(std::max(static_cast<uint32_t>(std::stoi(commandlineArguments["bitrate"])), BITRATE_DEFAULT/5), 2*BITRATE_DEFAULT) : BITRATE_DEFAULT};
         const bool VERBOSE{commandlineArguments.count("verbose") != 0};
         const uint32_t ID{(commandlineArguments["id"].size() != 0) ? static_cast<uint32_t>(std::stoi(commandlineArguments["id"])) : 0};
 
@@ -72,43 +76,50 @@ int32_t main(int32_t argc, char **argv) {
                 encoder->GetDefaultParams(&parameters);
 
                 parameters.fMaxFrameRate = 20 /*FPS*/; // This parameter is implicitly given by the notifications from the shared memory.
+                parameters.iUsageType = EUsageType::CAMERA_VIDEO_REAL_TIME;
                 parameters.iPicWidth = WIDTH;
                 parameters.iPicHeight = HEIGHT;
-                parameters.iTargetBitrate = 2500000;
-                parameters.iMaxBitrate = 5000000;
-                parameters.iRCMode = RC_QUALITY_MODE;
-                parameters.iTemporalLayerNum = 1;
+                parameters.uiIntraPeriod = GOP;
+                parameters.iTargetBitrate = BITRATE;
+                parameters.iMaxBitrate = 2*BITRATE_DEFAULT;
+                parameters.iRCMode = RC_MODES::RC_QUALITY_MODE;
                 parameters.iSpatialLayerNum = 1;
+                parameters.iTemporalLayerNum = 1;
+                parameters.iLoopFilterDisableIdc = 0;
+                parameters.iLtrMarkPeriod = 30;
+                parameters.iMultipleThreadIdc = 1; // 1 = disable multi threads.
+                parameters.iEntropyCodingModeFlag = 0; // 0 = CAVLC, 1 = CABAC (not supported in BaseLine profile).
+//                parameters.iComplexityMode = ECOMPLEXITY_MODE::LOW_COMPLEXITY;
                 parameters.bEnableAdaptiveQuant = 1;
                 parameters.bEnableBackgroundDetection = 1;
-                parameters.bEnableDenoise = 0;
+                parameters.bEnableDenoise = 1;
                 parameters.bEnableFrameSkip = 0;
                 parameters.bEnableLongTermReference = 0;
-                parameters.iLtrMarkPeriod = 30;
-                parameters.uiIntraPeriod = GOP;
-                parameters.eSpsPpsIdStrategy = CONSTANT_ID;
-                parameters.bPrefixNalAddingCtrl = 0;
-                parameters.iLoopFilterDisableIdc = 0;
-                parameters.iEntropyCodingModeFlag = 0;
-                parameters.iMultipleThreadIdc = 1;
-                parameters.iEntropyCodingModeFlag = 0;
+                parameters.bEnableSceneChangeDetect = 1;
+                parameters.bPrefixNalAddingCtrl = 0; // do nod add NAL prefixes.
+                parameters.eSpsPpsIdStrategy = EParameterSetStrategy::CONSTANT_ID;
 
                 parameters.sSpatialLayers[0].iVideoWidth = parameters.iPicWidth;
                 parameters.sSpatialLayers[0].iVideoHeight = parameters.iPicHeight;
                 parameters.sSpatialLayers[0].fFrameRate = parameters.fMaxFrameRate;
                 parameters.sSpatialLayers[0].iSpatialBitrate = parameters.iTargetBitrate;
                 parameters.sSpatialLayers[0].iMaxSpatialBitrate = parameters.iMaxBitrate;
-                parameters.sSpatialLayers[0].sSliceArgument.uiSliceMode = SM_SIZELIMITED_SLICE;
+                parameters.sSpatialLayers[0].sSliceArgument.uiSliceMode = SliceModeEnum::SM_SIZELIMITED_SLICE;
                 parameters.sSpatialLayers[0].sSliceArgument.uiSliceNum = 1;
             }
             if (cmResultSuccess != encoder->InitializeExt(&parameters)) {
                 std::cerr << argv[0] << ": Failed to set parameters for openh264." << std::endl;
                 return retCode;
             }
+            else {
+                std::clog << argv[0] << ": Encoding bitrate = " << BITRATE << std::endl;
+            }
 
             // Allocate image buffer to hold h264 frame as output.
             std::vector<char> h264Buffer;
             h264Buffer.resize(WIDTH * HEIGHT, '0'); // In practice, this is small than WIDTH * HEIGHT
+
+            cluon::data::TimeStamp before, after, sampleTimeStamp;
 
             // Interface to a running OpenDaVINCI session (ignoring any incoming Envelopes).
             cluon::OD4Session od4{static_cast<uint16_t>(std::stoi(commandlineArguments["cid"]))};
@@ -117,7 +128,7 @@ int32_t main(int32_t argc, char **argv) {
                 // Wait for incoming frame.
                 sharedMemory->wait();
 
-                cluon::data::TimeStamp sampleTimeStamp{cluon::time::now()};
+                sampleTimeStamp = cluon::time::now();
 
                 int totalSize{0};
                 sharedMemory->lock();
@@ -128,10 +139,9 @@ int32_t main(int32_t argc, char **argv) {
                     SSourcePicture sourceFrame;
                     memset(&sourceFrame, 0, sizeof(SSourcePicture));
 
-                    sourceFrame.iColorFormat = videoFormatI420;
+                    sourceFrame.iColorFormat = EVideoFormatType::videoFormatI420;
                     sourceFrame.iPicWidth = WIDTH;
                     sourceFrame.iPicHeight = HEIGHT;
-
                     sourceFrame.iStride[0] = WIDTH;
                     sourceFrame.iStride[1] = WIDTH/2;
                     sourceFrame.iStride[2] = WIDTH/2;
@@ -139,7 +149,13 @@ int32_t main(int32_t argc, char **argv) {
                     sourceFrame.pData[1] = reinterpret_cast<uint8_t*>(sharedMemory->data() + (WIDTH * HEIGHT));
                     sourceFrame.pData[2] = reinterpret_cast<uint8_t*>(sharedMemory->data() + (WIDTH * HEIGHT + ((WIDTH * HEIGHT) >> 2)));
 
+                    if (VERBOSE) {
+                        before = cluon::time::now();
+                    }
                     auto result = encoder->EncodeFrame(&sourceFrame, &frameInfo);
+                    if (VERBOSE) {
+                        after = cluon::time::now();
+                    }
                     if (cmResultSuccess == result) {
                         if (videoFrameTypeSkip == frameInfo.eFrameType) {
                             std::cerr << argv[0] << ": Warning, skipping frame." << std::endl;
@@ -165,6 +181,10 @@ int32_t main(int32_t argc, char **argv) {
                     opendlv::proxy::ImageReading ir;
                     ir.format("h264").width(WIDTH).height(HEIGHT).data(std::string(&h264Buffer[0], totalSize));
                     od4.send(ir, sampleTimeStamp, ID);
+
+                    if (VERBOSE) {
+                        std::clog << argv[0] << ": Frame size = " << totalSize << " bytes; encoding took " << cluon::time::deltaInMicroseconds(after, before) << " microseconds." << std::endl;
+                    }
                 }
             }
             if (nullptr != encoder) {
