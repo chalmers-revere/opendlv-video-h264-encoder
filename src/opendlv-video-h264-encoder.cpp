@@ -181,7 +181,7 @@ int32_t main(int32_t argc, char **argv) {
 
                 if (0 < totalSize) {
                     opendlv::proxy::ImageReading ir;
-                    ir.format("h264").width(WIDTH).height(HEIGHT).data(std::string(&h264Buffer[0], totalSize));
+                    ir.fourcc("h264").width(WIDTH).height(HEIGHT).data(std::string(&h264Buffer[0], totalSize));
                     od4.send(ir, sampleTimeStamp, ID);
 
                     if (VERBOSE) {
