@@ -135,6 +135,11 @@ int32_t main(int32_t argc, char **argv) {
                 int totalSize{0};
                 sharedMemory->lock();
                 {
+                    // Read notification timestamp.
+                    auto r = sharedMemory->getTimeStamp();
+                    sampleTimeStamp = (r.first ? r.second : sampleTimeStamp);
+                }
+                {
                     SFrameBSInfo frameInfo;
                     memset(&frameInfo, 0, sizeof(SFrameBSInfo));
 
@@ -185,7 +190,7 @@ int32_t main(int32_t argc, char **argv) {
                     od4.send(ir, sampleTimeStamp, ID);
 
                     if (VERBOSE) {
-                        std::clog << argv[0] << ": Frame size = " << totalSize << " bytes; encoding took " << cluon::time::deltaInMicroseconds(after, before) << " microseconds." << std::endl;
+                        std::clog << argv[0] << ": Frame size = " << totalSize << " bytes; sample time = " << cluon::time::toMicroseconds(sampleTimeStamp) << " microseconds; encoding took " << cluon::time::deltaInMicroseconds(after, before) << " microseconds." << std::endl;
                     }
                 }
             }
