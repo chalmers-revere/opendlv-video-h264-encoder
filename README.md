@@ -46,7 +46,7 @@ version: '2' # Must be present exactly once at the beginning of the docker-compo
 services:    # Must be present exactly once at the beginning of the docker-compose.yml file
     video-h264-encoder-amd64:
         build:
-            context: https://github.com/chalmers-revere/opendlv-video-h264-encoder.git
+            context: https://github.com/chalmers-revere/opendlv-video-h264-encoder.git#v0.0.1
             dockerfile: Dockerfile.amd64
         restart: on-failure
         network_mode: "host"
