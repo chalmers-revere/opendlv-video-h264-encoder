@@ -26,13 +26,40 @@
 #include <iostream>
 #include <vector>
 
+/*
+ * @TODO remove after testing is done
+ * docker run --rm -ti --init --ipc=host -v /tmp:/tmp -v $PWD:/data -w /data h264test --cid=122 --name=video0.i420
+ * --width=640 --height=480 --verbose --rc-mode=0 --num-ref-frame=0 --sps-pps=0 --prefix-nal=0 --ssei=0 --padding=0
+ * --entropy-coding=0 --frame-skip=0 --bitrate-max=0 --qp-max=0 --qp-min=0 --long-term-ref=0 --ltr-mark-period=0
+ * --loop-filter=0 --denoise=0 --background-detection=0 --adaptive-quant=0 --frame-cropping=0 --scene-change-detect=0
+ */
+
 int32_t main(int32_t argc, char **argv) {
     int32_t retCode{1};
     auto commandlineArguments = cluon::getCommandlineArguments(argc, argv);
     if ( (0 == commandlineArguments.count("cid")) ||
          (0 == commandlineArguments.count("name")) ||
          (0 == commandlineArguments.count("width")) ||
-         (0 == commandlineArguments.count("height")) ) {
+         (0 == commandlineArguments.count("height")) ||
+         (0 == commandlineArguments.count("rc-mode"))||
+         (0 == commandlineArguments.count("num-ref-frame")) ||
+         (0 == commandlineArguments.count("sps-pps")) ||
+         (0 == commandlineArguments.count("prefix-nal")) ||
+         (0 == commandlineArguments.count("ssei")) ||
+         (0 == commandlineArguments.count("padding")) ||
+         (0 == commandlineArguments.count("entropy-coding")) ||
+         (0 == commandlineArguments.count("frame-skip"))||
+         (0 == commandlineArguments.count("bitrate-max")) ||
+         (0 == commandlineArguments.count("qp-max")) ||
+         (0 == commandlineArguments.count("qp-min")) ||
+         (0 == commandlineArguments.count("long-term-ref"))||
+         (0 == commandlineArguments.count("ltr-mark-period")) ||
+         (0 == commandlineArguments.count("loop-filter")) ||
+         (0 == commandlineArguments.count("denoise"))||
+         (0 == commandlineArguments.count("background-detection")) ||
+         (0 == commandlineArguments.count("adaptive-quant")) ||
+         (0 == commandlineArguments.count("frame-cropping")) ||
+         (0 == commandlineArguments.count("scene-change-detect"))) {
         std::cerr << argv[0] << " attaches to an I420-formatted image residing in a shared memory area to convert it into a corresponding h264 frame for publishing to a running OD4 session." << std::endl;
         std::cerr << "Usage:   " << argv[0] << " --cid=<OpenDaVINCI session> --name=<name of shared memory area> --width=<width> --height=<height> [--gop=<GOP>] [--bitrate=<bitrate>] [--verbose] [--id=<identifier in case of multiple instances]" << std::endl;
         std::cerr << "         --cid:     CID of the OD4Session to send h264 frames" << std::endl;
@@ -57,6 +84,31 @@ int32_t main(int32_t argc, char **argv) {
         const uint32_t BITRATE{(commandlineArguments["bitrate"].size() != 0) ? std::min(std::max(static_cast<uint32_t>(std::stoi(commandlineArguments["bitrate"])), BITRATE_MIN), BITRATE_MAX) : BITRATE_DEFAULT};
         const bool VERBOSE{commandlineArguments.count("verbose") != 0};
         const uint32_t ID{(commandlineArguments["id"].size() != 0) ? static_cast<uint32_t>(std::stoi(commandlineArguments["id"])) : 0};
+
+
+        /*
+         * Thesis params
+         * https://github.com/cisco/openh264/wiki/TypesAndStructures
+         */
+        //const uint32_t RC_MODE{static_cast<uint32_t>(std::stoi(commandlineArguments["rc-mode"]))};
+        const uint32_t I_NUM_REF_FRAME{static_cast<uint32_t>(std::stoi(commandlineArguments["num-ref-frame"]))};
+        //const uint32_t SPS_PPS_STRATEGY{static_cast<uint32_t>(std::stoi(commandlineArguments["sps-pps"]))};
+        const uint32_t B_PREFIX_NAL{static_cast<uint32_t>(std::stoi(commandlineArguments["prefix-nal"]))};
+        const uint32_t B_SSEI{static_cast<uint32_t>(std::stoi(commandlineArguments["ssei"]))};
+        const uint32_t I_PADDING{static_cast<uint32_t>(std::stoi(commandlineArguments["padding"]))};
+        const uint32_t I_ENTROPY_CODING{static_cast<uint32_t>(std::stoi(commandlineArguments["entropy-coding"]))};
+        const uint32_t B_FRAME_SKIP{static_cast<uint32_t>(std::stoi(commandlineArguments["frame-skip"]))};
+        const uint32_t I_BITRATE_MAX{static_cast<uint32_t>(std::stoi(commandlineArguments["bitrate-max"]))};
+        const uint32_t I_MAX_QP{static_cast<uint32_t>(std::stoi(commandlineArguments["qp-max"]))};
+        const uint32_t I_MIN_QP{static_cast<uint32_t>(std::stoi(commandlineArguments["qp-min"]))};
+        const uint32_t I_LONG_TERM_REFERENCE{static_cast<uint32_t>(std::stoi(commandlineArguments["long-term-ref"]))};
+        const uint32_t I_LTR_MARK_PERIOD{static_cast<uint32_t>(std::stoi(commandlineArguments["ltr-mark-period"]))};
+        const uint32_t I_LOOP_FILTER{static_cast<uint32_t>(std::stoi(commandlineArguments["loop-filter"]))};
+        const uint32_t B_DENOISE{static_cast<uint32_t>(std::stoi(commandlineArguments["denoise"]))};
+        const uint32_t B_BACKGROUND_DETECTION{static_cast<uint32_t>(std::stoi(commandlineArguments["background-detection"]))};
+        const uint32_t B_ADAPTIVE_QUANT{static_cast<uint32_t>(std::stoi(commandlineArguments["adaptive-quant"]))};
+        const uint32_t B_FRAME_CROPPING{static_cast<uint32_t>(std::stoi(commandlineArguments["frame-cropping"]))};
+        const uint32_t B_SCENE_CHANGE_DETECT{static_cast<uint32_t>(std::stoi(commandlineArguments["scene-change-detect"]))};
 
         std::unique_ptr<cluon::SharedMemory> sharedMemory(new cluon::SharedMemory{NAME});
         if (sharedMemory && sharedMemory->valid()) {
@@ -83,23 +135,23 @@ int32_t main(int32_t argc, char **argv) {
                 parameters.iPicHeight = HEIGHT;
                 parameters.uiIntraPeriod = GOP;
                 parameters.iTargetBitrate = BITRATE;
-                parameters.iMaxBitrate = BITRATE_MAX;
-                parameters.iRCMode = RC_MODES::RC_QUALITY_MODE;
+                //parameters.iMaxBitrate = BITRATE_MAX;
+                //parameters.iRCMode = RC_MODES::RC_QUALITY_MODE;
                 parameters.iSpatialLayerNum = 1;
                 parameters.iTemporalLayerNum = 1;
-                parameters.iLoopFilterDisableIdc = 0;
-                parameters.iLtrMarkPeriod = 30;
+                ///parameters.iLoopFilterDisableIdc = 0;
+                //parameters.iLtrMarkPeriod = 30;
                 parameters.iMultipleThreadIdc = 1; // 1 = disable multi threads.
-                parameters.iEntropyCodingModeFlag = 0; // 0 = CAVLC, 1 = CABAC (not supported in BaseLine profile).
+                //parameters.iEntropyCodingModeFlag = 0; // 0 = CAVLC, 1 = CABAC (not supported in BaseLine profile).
                 parameters.iComplexityMode = ECOMPLEXITY_MODE::LOW_COMPLEXITY;
-                parameters.bEnableAdaptiveQuant = 1;
-                parameters.bEnableBackgroundDetection = 1;
-                parameters.bEnableDenoise = 1;
-                parameters.bEnableFrameSkip = 0;
-                parameters.bEnableLongTermReference = 0;
-                parameters.bEnableSceneChangeDetect = 1;
-                parameters.bPrefixNalAddingCtrl = 0; // do nod add NAL prefixes.
-                parameters.eSpsPpsIdStrategy = EParameterSetStrategy::CONSTANT_ID;
+                //parameters.bEnableAdaptiveQuant = 1;
+                //parameters.bEnableBackgroundDetection = 1;
+                //parameters.bEnableDenoise = 1;
+                //parameters.bEnableFrameSkip = 0;
+                //parameters.bEnableLongTermReference = 0;
+                //parameters.bEnableSceneChangeDetect = 1;
+                //parameters.bPrefixNalAddingCtrl = 0; // do nod add NAL prefixes.
+                //parameters.eSpsPpsIdStrategy = EParameterSetStrategy::CONSTANT_ID;
 
                 parameters.sSpatialLayers[0].iVideoWidth = parameters.iPicWidth;
                 parameters.sSpatialLayers[0].iVideoHeight = parameters.iPicHeight;
@@ -108,6 +160,32 @@ int32_t main(int32_t argc, char **argv) {
                 parameters.sSpatialLayers[0].iMaxSpatialBitrate = parameters.iMaxBitrate;
                 parameters.sSpatialLayers[0].sSliceArgument.uiSliceMode = SliceModeEnum::SM_SIZELIMITED_SLICE;
                 parameters.sSpatialLayers[0].sSliceArgument.uiSliceNum = 1;
+
+                /*
+                 * Thesis parameters
+                 */
+
+                //parameters.iRCMode = RC_MODE;
+                parameters.iNumRefFrame = I_NUM_REF_FRAME;
+                //parameters.eSpsPpsIdStrategy = SPS_PPS_STRATEGY;
+                parameters.bPrefixNalAddingCtrl = B_PREFIX_NAL;
+                parameters.bEnableSSEI = B_SSEI;
+                parameters.iPaddingFlag = I_PADDING;
+                parameters.iEntropyCodingModeFlag = I_ENTROPY_CODING;
+                parameters.bEnableFrameSkip = B_FRAME_SKIP;
+                parameters.iMaxBitrate = I_BITRATE_MAX;
+                parameters.iMaxQp = I_MAX_QP;
+                parameters.iMinQp = I_MIN_QP;
+                parameters.bEnableLongTermReference = I_LONG_TERM_REFERENCE;
+                parameters.iLtrMarkPeriod = I_LTR_MARK_PERIOD;
+                // should we use multi threading? //parameters.iMultipleThreadIdc =
+                parameters.iLoopFilterDisableIdc = I_LOOP_FILTER;
+                parameters.bEnableDenoise = B_DENOISE;
+                parameters.bEnableBackgroundDetection = B_BACKGROUND_DETECTION;
+                parameters.bEnableAdaptiveQuant = B_ADAPTIVE_QUANT;
+                parameters.bEnableFrameCroppingFlag = B_FRAME_CROPPING;
+                parameters.bEnableSceneChangeDetect = B_SCENE_CHANGE_DETECT;
+
             }
             if (cmResultSuccess != encoder->InitializeExt(&parameters)) {
                 std::cerr << argv[0] << ": Failed to set parameters for openh264." << std::endl;
