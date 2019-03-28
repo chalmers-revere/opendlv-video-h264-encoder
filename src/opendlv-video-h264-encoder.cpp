@@ -29,8 +29,8 @@
 /*
  * @TODO remove after testing is done
  * docker run --rm -ti --init --ipc=host -v /tmp:/tmp -v $PWD:/data -w /data h264test --cid=122 --name=video0.i420
- * --width=640 --height=480 --verbose --rc-mode=0 --num-ref-frame=0 --sps-pps=0 --prefix-nal=0 --ssei=0 --padding=0
- * --entropy-coding=0 --frame-skip=0 --bitrate-max=0 --qp-max=0 --qp-min=0 --long-term-ref=0 --ltr-mark-period=0
+ * --width=640 --height=480 --verbose --rc-mode=0 --ecomplexity=0 --num-ref-frame=0 --sps-pps=0 --prefix-nal=0 --ssei=0
+ * --padding=0 --entropy-coding=0 --frame-skip=0 --bitrate-max=0 --qp-max=0 --qp-min=0 --long-term-ref=0 --ltr-mark-period=0
  * --loop-filter=0 --denoise=0 --background-detection=0 --adaptive-quant=0 --frame-cropping=0 --scene-change-detect=0
  */
 
@@ -42,6 +42,7 @@ int32_t main(int32_t argc, char **argv) {
          (0 == commandlineArguments.count("width")) ||
          (0 == commandlineArguments.count("height")) ||
          (0 == commandlineArguments.count("rc-mode"))||
+         (0 == commandlineArguments.count("ecomplexity"))||
          (0 == commandlineArguments.count("num-ref-frame")) ||
          (0 == commandlineArguments.count("sps-pps")) ||
          (0 == commandlineArguments.count("prefix-nal")) ||
@@ -90,9 +91,10 @@ int32_t main(int32_t argc, char **argv) {
          * Thesis params
          * https://github.com/cisco/openh264/wiki/TypesAndStructures
          */
-        //const uint32_t RC_MODE{static_cast<uint32_t>(std::stoi(commandlineArguments["rc-mode"]))};
+        const uint32_t RC_MODE{static_cast<uint32_t>(std::stoi(commandlineArguments["rc-mode"]))};
+        const uint32_t ECOMPLEXITY{static_cast<uint32_t>(std::stoi(commandlineArguments["ecomplexity"]))};
         const uint32_t I_NUM_REF_FRAME{static_cast<uint32_t>(std::stoi(commandlineArguments["num-ref-frame"]))};
-        //const uint32_t SPS_PPS_STRATEGY{static_cast<uint32_t>(std::stoi(commandlineArguments["sps-pps"]))};
+        const uint32_t SPS_PPS_STRATEGY{static_cast<uint32_t>(std::stoi(commandlineArguments["sps-pps"]))};
         const uint32_t B_PREFIX_NAL{static_cast<uint32_t>(std::stoi(commandlineArguments["prefix-nal"]))};
         const uint32_t B_SSEI{static_cast<uint32_t>(std::stoi(commandlineArguments["ssei"]))};
         const uint32_t I_PADDING{static_cast<uint32_t>(std::stoi(commandlineArguments["padding"]))};
@@ -109,6 +111,7 @@ int32_t main(int32_t argc, char **argv) {
         const uint32_t B_ADAPTIVE_QUANT{static_cast<uint32_t>(std::stoi(commandlineArguments["adaptive-quant"]))};
         const uint32_t B_FRAME_CROPPING{static_cast<uint32_t>(std::stoi(commandlineArguments["frame-cropping"]))};
         const uint32_t B_SCENE_CHANGE_DETECT{static_cast<uint32_t>(std::stoi(commandlineArguments["scene-change-detect"]))};
+
 
         std::unique_ptr<cluon::SharedMemory> sharedMemory(new cluon::SharedMemory{NAME});
         if (sharedMemory && sharedMemory->valid()) {
@@ -143,7 +146,7 @@ int32_t main(int32_t argc, char **argv) {
                 //parameters.iLtrMarkPeriod = 30;
                 parameters.iMultipleThreadIdc = 1; // 1 = disable multi threads.
                 //parameters.iEntropyCodingModeFlag = 0; // 0 = CAVLC, 1 = CABAC (not supported in BaseLine profile).
-                parameters.iComplexityMode = ECOMPLEXITY_MODE::LOW_COMPLEXITY;
+                //parameters.iComplexityMode = ECOMPLEXITY_MODE::LOW_COMPLEXITY;
                 //parameters.bEnableAdaptiveQuant = 1;
                 //parameters.bEnableBackgroundDetection = 1;
                 //parameters.bEnableDenoise = 1;
@@ -164,10 +167,23 @@ int32_t main(int32_t argc, char **argv) {
                 /*
                  * Thesis parameters
                  */
+                if (RC_MODE == 0) parameters.iRCMode = RC_MODES::RC_QUALITY_MODE;
+                else if(RC_MODE == 1) parameters.iRCMode = RC_MODES::RC_BITRATE_MODE;
+                else if(RC_MODE == 2) parameters.iRCMode = RC_MODES::RC_BUFFERBASED_MODE;
+                else if(RC_MODE == 3) parameters.iRCMode = RC_MODES::RC_TIMESTAMP_MODE;
+                else parameters.iRCMode = RC_MODES::RC_OFF_MODE;
 
-                //parameters.iRCMode = RC_MODE;
+                if (SPS_PPS_STRATEGY == 0) parameters.eSpsPpsIdStrategy = EParameterSetStrategy::CONSTANT_ID;
+                else if(SPS_PPS_STRATEGY == 1) parameters.eSpsPpsIdStrategy = EParameterSetStrategy::INCREASING_ID;
+                else if(SPS_PPS_STRATEGY == 2) parameters.eSpsPpsIdStrategy = EParameterSetStrategy::SPS_LISTING;
+                else if(SPS_PPS_STRATEGY == 3)parameters.eSpsPpsIdStrategy = EParameterSetStrategy::SPS_LISTING_AND_PPS_INCREASING;
+                else parameters.eSpsPpsIdStrategy = EParameterSetStrategy::SPS_PPS_LISTING;
+
+                if (ECOMPLEXITY == 0) parameters.iComplexityMode = ECOMPLEXITY_MODE::LOW_COMPLEXITY;
+                else if(ECOMPLEXITY == 1) parameters.iComplexityMode = ECOMPLEXITY_MODE::MEDIUM_COMPLEXITY;
+                else parameters.iComplexityMode = ECOMPLEXITY_MODE::HIGH_COMPLEXITY;
+
                 parameters.iNumRefFrame = I_NUM_REF_FRAME;
-                //parameters.eSpsPpsIdStrategy = SPS_PPS_STRATEGY;
                 parameters.bPrefixNalAddingCtrl = B_PREFIX_NAL;
                 parameters.bEnableSSEI = B_SSEI;
                 parameters.iPaddingFlag = I_PADDING;
