@@ -33,8 +33,7 @@ int32_t main(int32_t argc, char **argv) {
     if ( (0 == commandlineArguments.count("cid")) ||
          (0 == commandlineArguments.count("name")) ||
          (0 == commandlineArguments.count("width")) ||
-         (0 == commandlineArguments.count("height")))
-        {
+         (0 == commandlineArguments.count("height")) ) {
         std::cerr << argv[0] << " attaches to an I420-formatted image residing in a shared memory area to convert it into a corresponding h264 frame for publishing to a running OD4 session." << std::endl;
         std::cerr << "Usage:   " << argv[0] << " --cid=<OpenDaVINCI session> --name=<name of shared memory area> --width=<width> --height=<height> [--gop=<GOP>] [--bitrate=<bitrate>] [--id=<identifier in case of multiple instances]"
                 "[--bitrate-max=<bitrate-max>] [--rc-mode=<rc-mode>] [--ecomplexity=<ecomplexity>] [--sps-pps=<sps-pps>] [--num-ref-frame=<num-ref-frame>] [--ssei=<ssei>] [--prefix-nal=<prefix-nal>] [--entropy-coding=<entropy-coding>] "
@@ -111,7 +110,6 @@ int32_t main(int32_t argc, char **argv) {
         const uint32_t B_SCENE_CHANGE_DETECT{(commandlineArguments["scene-change-detect"].size() != 0) ? std::min(std::max(static_cast<uint32_t>(std::stoi(commandlineArguments["scene-change-detect"])), ZERO), ONE): 1};
         const uint32_t I_MULTIPLE_THREADS{(commandlineArguments["threads"].size() != 0) ? std::min(std::max(static_cast<uint32_t>(std::stoi(commandlineArguments["threads"])), ZERO), FOUR): 1};
 
-
         std::unique_ptr<cluon::SharedMemory> sharedMemory(new cluon::SharedMemory{NAME});
         if (sharedMemory && sharedMemory->valid()) {
             std::clog << argv[0] << ": Attached to '" << sharedMemory->name() << "' (" << sharedMemory->size() << " bytes)." << std::endl;
@@ -155,8 +153,12 @@ int32_t main(int32_t argc, char **argv) {
                  * https://github.com/cisco/openh264/wiki/TypesAndStructures
                  * https://github.com/cisco/openh264/blob/master/codec/encoder/core/inc/param_svc.h#L132
                  */
-                if (I_NUM_REF_FRAME==0){parameters.iNumRefFrame = AUTO_REF_PIC_COUNT;}
-                else {parameters.iNumRefFrame = I_NUM_REF_FRAME;}
+                if (I_NUM_REF_FRAME == 0) {
+                    parameters.iNumRefFrame = AUTO_REF_PIC_COUNT;
+                }
+                else {
+                    parameters.iNumRefFrame = I_NUM_REF_FRAME;
+                }
                 parameters.bPrefixNalAddingCtrl = B_PREFIX_NAL;
                 parameters.bEnableSSEI = B_SSEI;
                 parameters.iPaddingFlag = I_PADDING;
@@ -174,25 +176,24 @@ int32_t main(int32_t argc, char **argv) {
                 parameters.bEnableSceneChangeDetect = B_SCENE_CHANGE_DETECT;
 
                 switch (RC_MODE) {
-                    case 0: {parameters.iRCMode = RC_MODES::RC_QUALITY_MODE; break;}
-                    case 1: {parameters.iRCMode = RC_MODES::RC_BITRATE_MODE; break;}
-                    case 2: {parameters.iRCMode = RC_MODES::RC_BUFFERBASED_MODE; break;}
-                    case 3: {parameters.iRCMode = RC_MODES::RC_TIMESTAMP_MODE; break;}
-                    case 4:{parameters.iRCMode = RC_MODES::RC_OFF_MODE; break;}
-
+                    case 0: { parameters.iRCMode = RC_MODES::RC_QUALITY_MODE; break; }
+                    case 1: { parameters.iRCMode = RC_MODES::RC_BITRATE_MODE; break; }
+                    case 2: { parameters.iRCMode = RC_MODES::RC_BUFFERBASED_MODE; break; }
+                    case 3: { parameters.iRCMode = RC_MODES::RC_TIMESTAMP_MODE; break; }
+                    case 4: { parameters.iRCMode = RC_MODES::RC_OFF_MODE; break; }
                 }
 
                 switch (SPS_PPS_STRATEGY) {
-                    case 0: {parameters.eSpsPpsIdStrategy = EParameterSetStrategy::CONSTANT_ID; break;}
-                    case 1: {parameters.eSpsPpsIdStrategy = EParameterSetStrategy::INCREASING_ID; break;}
-                    case 2: {parameters.eSpsPpsIdStrategy = EParameterSetStrategy::SPS_LISTING; break;}
-                    case 3: {parameters.eSpsPpsIdStrategy = EParameterSetStrategy::SPS_LISTING_AND_PPS_INCREASING; break;}
+                    case 0: { parameters.eSpsPpsIdStrategy = EParameterSetStrategy::CONSTANT_ID; break; }
+                    case 1: { parameters.eSpsPpsIdStrategy = EParameterSetStrategy::INCREASING_ID; break; }
+                    case 2: { parameters.eSpsPpsIdStrategy = EParameterSetStrategy::SPS_LISTING; break; }
+                    case 3: { parameters.eSpsPpsIdStrategy = EParameterSetStrategy::SPS_LISTING_AND_PPS_INCREASING; break; }
                 }
 
                 switch (ECOMPLEXITY) {
-                    case 0: {parameters.iComplexityMode = ECOMPLEXITY_MODE::LOW_COMPLEXITY;; break;}
-                    case 1: {parameters.iComplexityMode = ECOMPLEXITY_MODE::MEDIUM_COMPLEXITY; break;}
-                    case 2: {parameters.iComplexityMode = ECOMPLEXITY_MODE::HIGH_COMPLEXITY; break;}
+                    case 0: { parameters.iComplexityMode = ECOMPLEXITY_MODE::LOW_COMPLEXITY;; break; }
+                    case 1: { parameters.iComplexityMode = ECOMPLEXITY_MODE::MEDIUM_COMPLEXITY; break; }
+                    case 2: { parameters.iComplexityMode = ECOMPLEXITY_MODE::HIGH_COMPLEXITY; break; }
                 }
             }
             if (cmResultSuccess != encoder->InitializeExt(&parameters)) {
