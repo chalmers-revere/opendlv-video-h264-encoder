@@ -45,7 +45,7 @@ MAINTAINER Christian Berger "christian.berger@gu.se"
 WORKDIR /usr/lib/x86_64-linux-gnu
 COPY --from=builder /tmp/libopenh264-2.0.0-linux64.5.so.bz2 .
 RUN bunzip2 libopenh264-2.0.0-linux64.5.so.bz2 && \
-    ln -sf libopenh264-2.0.0-linux64.5.so libopenh264.so.4
+    ln -sf libopenh264-2.0.0-linux64.5.so libopenh264.so.5
 
 WORKDIR /usr/bin
 COPY --from=builder /tmp/bin/opendlv-video-h264-encoder .
