@@ -46,7 +46,7 @@ version: '2' # Must be present exactly once at the beginning of the docker-compo
 services:    # Must be present exactly once at the beginning of the docker-compose.yml file
     video-h264-encoder-amd64:
         build:
-            context: https://github.com/chalmers-revere/opendlv-video-h264-encoder.git#v0.0.2
+            context: https://github.com/chalmers-revere/opendlv-video-h264-encoder.git#v0.0.3
             dockerfile: Dockerfile.amd64
         restart: on-failure
         network_mode: "host"
@@ -70,26 +70,26 @@ The parameters to the application are:
 * `--height=H`: Height of the image in the shared memory area
 * `--bitrate=B`: desired bitrate (default: 100,000)
 * `--gop=G`: desired length of group of pictures (default: 10)
-* `-- bitrate-max`: optional: maximum bitrate (default: 5,000,000, min: 100,000 max: 5,000,000)
-* `-- gop`: optional: length of group of pictures (default = 10)
-* `-- rc-mode`: optional: rate control mode (default: RC_QUALITY_MODE (0), min: 0, max: 4)
-* `-- ecomplexity`: optional: complexity mode (default: LOW_COMPLEXITY (0), min: 0, max: 2)
-* `-- sps-pps`: optional: SPS/PPS strategy (default: CONSTANT_ID (0), min: 0, max: 3)
-* `-- num-ref-frame`: optional: number of reference frame used (default: 1, 0: auto, >0 reference frames)
-* `-- ssei`: optional: toggle ssei (default: 0)
-* `-- prefix-nal`: optional: toggle prefix NAL adding control (default: 0)
-* `-- entropy-coding`: optional: toggle entropy encoding (default: CAVLC (0))
-* `-- frame-skip`: optional: toggle fram-skipping to keep the bitrate within limits (default: 1)
-* `-- qp-max`: optional: Quantization Parameter max (default: 42, min: 0 max: 51)
-* `-- qp-min`: optional: Quantization Parameter min (default: 12, min: 0 max: 51)
-* `-- long-term-ref`: optional: toggle long term reference control (default: 0)
-* `-- loop-filter`: optional: deblocking loop filter (default: 0, 0: on, 1: off, 2: on except for slice boundaries)
-* `-- denoise`: optional: toggle denoise control (default: 0)
-* `-- background-detection`: optional: toggle background detection control (default: 1)
-* `-- adaptive-quant`: optional: toggle adaptive quantization control (default: 1)
-* `-- frame-cropping`: optional: toggle frame cropping (default: 1)
-* `-- scene-change-detect`: optional: toggle scene change detection control (default: 1)
-* `-- threads`: optional: number of threads (default: 1, O: auto, >1: number of theads, max 4)
+* `--bitrate-max`: optional: maximum bitrate (default: 5,000,000, min: 100,000 max: 5,000,000)
+* `--gop`: optional: length of group of pictures (default = 10)
+* `--rc-mode`: optional: rate control mode (default: RC_QUALITY_MODE (0), min: 0, max: 4)
+* `--ecomplexity`: optional: complexity mode (default: LOW_COMPLEXITY (0), min: 0, max: 2)
+* `--sps-pps`: optional: SPS/PPS strategy (default: CONSTANT_ID (0), min: 0, max: 3)
+* `--num-ref-frame`: optional: number of reference frame used (default: 1, 0: auto, >0 reference frames)
+* `--ssei`: optional: toggle ssei (default: 0)
+* `--prefix-nal`: optional: toggle prefix NAL adding control (default: 0)
+* `--entropy-coding`: optional: toggle entropy encoding (default: CAVLC (0))
+* `--frame-skip`: optional: toggle fram-skipping to keep the bitrate within limits (default: 1)
+* `--qp-max`: optional: Quantization Parameter max (default: 42, min: 0 max: 51)
+* `--qp-min`: optional: Quantization Parameter min (default: 12, min: 0 max: 51)
+* `--long-term-ref`: optional: toggle long term reference control (default: 0)
+* `--loop-filter`: optional: deblocking loop filter (default: 0, 0: on, 1: off, 2: on except for slice boundaries)
+* `--denoise`: optional: toggle denoise control (default: 0)
+* `--background-detection`: optional: toggle background detection control (default: 1)
+* `--adaptive-quant`: optional: toggle adaptive quantization control (default: 1)
+* `--frame-cropping`: optional: toggle frame cropping (default: 1)
+* `--scene-change-detect`: optional: toggle scene change detection control (default: 1)
+* `--threads`: optional: number of threads (default: 1, O: auto, >1: number of theads, max 4)
 
 
 ## License
